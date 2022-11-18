@@ -2,3 +2,15 @@
     width: 70%;
     display: inline-block;
     }
+.legend{display:inline-block;
+
+}
+.sequence{
+    display:inline-block;
+}
+.form{
+    display:block;
+}
+.dropdown{
+    display:block;
+}
