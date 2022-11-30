@@ -51,14 +51,38 @@ function createMap(){
 };
 
 function getData(){
+    /*
+    fetch("data/CongestionZone.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //create a Leaflet GeoJSON layer and add it to the map
+            console.log(json)          
+            L.geoJson(json).addTo(map);
+        })*/
+    fetch("data/Streets.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //create a Leaflet GeoJSON layer and add it to the map          
+            L.geoJson(json,{
+                onEachFeature:onEachFeature3
+            }).addTo(map);
+            
+        })
+/*
 //--------Subway----------
     fetch("data/Subway/Routes.json")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
-            //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json).addTo(map);
+            //create a Leaflet GeoJSON layer and add it to the map           
+            L.geoJson(json,{
+                onEachFeature: onEachFeature2
+            }).addTo(map);
             
         })
     fetch("data/Subway/Stops.json")
@@ -67,9 +91,12 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json).addTo(map);
+            L.geoJson(json,{
+                onEachFeature: onEachFeature
+            }).addTo(map);
             
         })
+        
 //-----Metro North------------
     fetch("data/MetroNorth/Routes.json")
         .then(function(response){
@@ -77,7 +104,9 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json).addTo(map);
+            L.geoJson(json,{
+                onEachFeature:onEachFeature3
+            }).addTo(map);
             
         })
     fetch("data/MetroNorth/Stops.json")
@@ -86,31 +115,41 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json).addTo(map);
+            L.geoJson(json,{
+                onEachFeature:onEachFeature4
+            }).addTo(map);
             
         })
+        
 //-------LIRR--------
     fetch("data/LIRR/LIRR_GTFS.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
-            L.geoJson(data).addTo(map);
+            L.geoJson(data,{
+                onEachFeature:onEachFeatureRoutes
+            }).addTo(map);
         });
     fetch("data/LIRR/Stops.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
-            L.geoJson(data).addTo(map);
+            L.geoJson(data,{
+                onEachFeature:onEachFeatureStops
+            }).addTo(map);
         });
+        
 //------Bus-------
     fetch("data/Bus/Routes.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
-            L.geoJson(data).addTo(map);
+            L.geoJson(data,{
+                onEachFeature:onEachFeature2
+            }).addTo(map);
         });
     //look into adding fetch option 
     /*
@@ -118,13 +157,16 @@ function getData(){
         promises.push(d3.csv("data/LandUse_Percentage.csv")); //load attributes from csv     
         promises.push(d3.json("data/cb_2018_us_state_5m.topojson")); //load choropleth spatial data    
         Promise.all(promises).then(getData);
-    */      
+    */  
+    /*
     var folders=['Bus','LIRR','MetroNorth','Subway']
     for (var i in folders){
         var trips= d3.csvParse(FileHelper("data/"+folders[i]+"/trips.txt"));
         var stop_times = d3.csvParse(FileHelper("data/"+folders[i]+"/stop_times.txt"));
         //processData(trips,stop_times)
     }
+    
+    
         /*
     fetch("data/NewYorkCityBikeRoutes.geojson")
         .then(function(response){
@@ -135,27 +177,7 @@ function getData(){
             bikeRoutes=json.features
             L.geoJson(json).addTo(map);
         })
-    // too big of a dataset
-    fetch("data/NYCStreetCenterline(CSCL).geojson")
-        .then(function(response){
-            return response.json();
-        })
-        .then(function(json){
-            //create a Leaflet GeoJSON layer and add it to the map
-            streets=json.features
-            L.geoJson(json).addTo(map);
-        })
-    fetch("data/lirr_gtfs.json")
-        .then(function(response){
-           return response.json();
-        })
-        .then(function(data){
-            //L.geoJson(data.gtfs.shapes).addTo(map);
-            console.log(data);
-            processData(data.gtfs);
-        });
-        
-    */
+*/
     //add layer control to toggle layers after all data has been loaded
     createSequenceControls();
     createForm();
@@ -235,6 +257,57 @@ function processData(data){
     //console.log(groupedRoute)
 }
 */
+function onEachFeature(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    if(feature.properties.stop_id[0]=='9'){//exception for 42nd shuttle
+        popupContent += "<p><b>Route:</b>S</p>";
+    }else if(feature.properties.stop_id[0]=='H'){//exception for Far Rockaway
+        popupContent += "<p><b>Route:</b>A</p>";
+    }else{
+        popupContent += "<p><b>Route:</b> " + feature.properties.stop_id[0] + "</p>";
+    }
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
+function onEachFeature2(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Route:</b> " + feature.properties.route_shor + "</p>";
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
+    popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
+function onEachFeature3(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Road:</b> " + feature.properties.Roadway_Name+ "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
+
+function onEachFeatureRoutes(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
+
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
+function onEachFeatureStops(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    popupContent += "<a href=" + "'" + feature.properties.stop_url + "' target='_blank'>More Information" + "</a>"
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
 function createSequenceControls(){
     var sequence = document.querySelector('#sequence')
     //create slider
@@ -281,7 +354,7 @@ function createSequenceControls(){
 };
 function createForm(){
     var checkBox = document.querySelector('#form')
-    var dataList=['Subway','LIRR','Bus Route']
+    var dataList=['Subway','LIRR','Bus Route','Metro North']
     for (i in dataList){
         checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + i +'" name="' + dataList[i] +'" value="Subway">');
         checkBox.insertAdjacentHTML('beforeend','<label for="' + i +'">' + dataList[i] + '</label><br>');
