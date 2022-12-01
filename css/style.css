@@ -1,7 +1,28 @@
+/*---------Map Elements----------*/
 #map { height: 600px;    
     width: 70%;
     display: inline-block;
     }
+.leaflet-popup-content{
+    display: inline-block;
+    
+}
+.leaflet-popup-content-wrapper{
+    font-weight: normal;
+}
+
+.leaflet-control-layers{
+    background-color: rgb(236, 226, 226);
+}
+.leaflet-interactive{
+    fill-opacity: 0%;
+    stroke-opacity: 100%;
+}
+/* scale bar*/
+.leaflet-control-scale-line{fill-opacity: 10%;
+
+}
+/*--------Legend Elements-------*/
 .legend{display:inline-block;
 
 }
@@ -12,5 +33,8 @@
     display:block;
 }
 .dropdown{
+    display:block;
+}
+.time{
     display:block;
 }

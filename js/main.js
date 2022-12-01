@@ -1,9 +1,10 @@
 //global variables
 var map,
-neighborhoodBoudaries,
+traffic,
 baseMaps,
 overlayMaps,
-markerLayer,
+streetLayer,
+congestionLayer,
 subwayLines,
 dataList; 
 var layerGroup = L.layerGroup()
@@ -51,26 +52,21 @@ function createMap(){
 };
 
 function getData(){
-    /*
-    fetch("data/CongestionZone.json")
-        .then(function(response){
-            return response.json();
-        })
-        .then(function(json){
-            //create a Leaflet GeoJSON layer and add it to the map
-            console.log(json)          
-            L.geoJson(json).addTo(map);
-        })*/
     fetch("data/Streets.json")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
+            //make data globally available
+            traffic=json.features
             //create a Leaflet GeoJSON layer and add it to the map          
-            L.geoJson(json,{
-                onEachFeature:onEachFeature3
+            streetLayer =L.geoJson(json,{
+                onEachFeature:onEachFeature3,
+                style:{color:'#FED976'}//default color
             }).addTo(map);
             
+            //use years from traffic data to make dropdown menu
+            createDropdown(traffic);
         })
 /*
 //--------Subway----------
@@ -81,10 +77,12 @@ function getData(){
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map           
             L.geoJson(json,{
-                onEachFeature: onEachFeature2
+                onEachFeature: onEachFeature2,
+                style: style
             }).addTo(map);
             
         })
+
     fetch("data/Subway/Stops.json")
         .then(function(response){
             return response.json();
@@ -96,7 +94,7 @@ function getData(){
             }).addTo(map);
             
         })
-        
+
 //-----Metro North------------
     fetch("data/MetroNorth/Routes.json")
         .then(function(response){
@@ -105,7 +103,8 @@ function getData(){
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
             L.geoJson(json,{
-                onEachFeature:onEachFeature3
+                onEachFeature:onEachFeatureRoutes,
+                style:style
             }).addTo(map);
             
         })
@@ -116,19 +115,21 @@ function getData(){
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
             L.geoJson(json,{
-                onEachFeature:onEachFeature4
+                onEachFeature:onEachFeatureStops
             }).addTo(map);
             
         })
-        
+    
 //-------LIRR--------
     fetch("data/LIRR/LIRR_GTFS.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
+            console.log(data)
             L.geoJson(data,{
-                onEachFeature:onEachFeatureRoutes
+                onEachFeature:onEachFeatureRoutes,
+                style:style
             }).addTo(map);
         });
     fetch("data/LIRR/Stops.json")
@@ -136,11 +137,12 @@ function getData(){
            return response.json();
         })
         .then(function(data){
+            
             L.geoJson(data,{
                 onEachFeature:onEachFeatureStops
             }).addTo(map);
         });
-        
+/*        
 //------Bus-------
     fetch("data/Bus/Routes.json")
         .then(function(response){
@@ -148,7 +150,8 @@ function getData(){
         })
         .then(function(data){
             L.geoJson(data,{
-                onEachFeature:onEachFeature2
+                onEachFeature:onEachFeature2,
+                style:style
             }).addTo(map);
         });
     //look into adding fetch option 
@@ -157,17 +160,17 @@ function getData(){
         promises.push(d3.csv("data/LandUse_Percentage.csv")); //load attributes from csv     
         promises.push(d3.json("data/cb_2018_us_state_5m.topojson")); //load choropleth spatial data    
         Promise.all(promises).then(getData);
-    */  
-    /*
+    
+    
     var folders=['Bus','LIRR','MetroNorth','Subway']
     for (var i in folders){
         var trips= d3.csvParse(FileHelper("data/"+folders[i]+"/trips.txt"));
         var stop_times = d3.csvParse(FileHelper("data/"+folders[i]+"/stop_times.txt"));
-        //processData(trips,stop_times)
+        processData(trips,stop_times)
     }
+    /*
     
     
-        /*
     fetch("data/NewYorkCityBikeRoutes.geojson")
         .then(function(response){
             return response.json();
@@ -175,13 +178,25 @@ function getData(){
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map
             bikeRoutes=json.features
-            L.geoJson(json).addTo(map);
+            L.geoJson(json,{
+                onEachFeature:onEachFeature4
+            }).addTo(map);
         })
 */
+    fetch("data/CongestionZone.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //create a Leaflet GeoJSON layer and add it to the map         
+            congestionLayer=L.geoJson(json,{
+                style:{color:'#FED976'}//default color
+            }).addTo(map);
+        })
+        
     //add layer control to toggle layers after all data has been loaded
     createSequenceControls();
     createForm();
-    createDropdown();
     L.control.layers(baseMaps, overlayMaps,{ position: 'topright' }).addTo(map);
 };
 function processData(trips,stop_times){
@@ -275,7 +290,7 @@ function onEachFeature(feature, layer) {
 function onEachFeature2(feature, layer) {
     // create html string with all properties
     var popupContent = "";
-
+    
     popupContent += "<p><b>Route:</b> " + feature.properties.route_shor + "</p>";
     popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
     popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
@@ -289,11 +304,21 @@ function onEachFeature3(feature, layer) {
     popupContent += "<p><b>Road:</b> " + feature.properties.Roadway_Name+ "</p>";
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+    
 };
-
+function onEachFeature4(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Street:</b> " + feature.properties.street + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+    
+};
 function onEachFeatureRoutes(feature, layer) {
     // create html string with all properties
     var popupContent = "";
+
     popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
 
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
@@ -308,6 +333,7 @@ function onEachFeatureStops(feature, layer) {
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
 };
+
 function createSequenceControls(){
     var sequence = document.querySelector('#sequence')
     //create slider
@@ -318,10 +344,10 @@ function createSequenceControls(){
     sequence.insertAdjacentHTML('beforeend', '<button class="step" id="forward" title="Forward">+</button>');
     
     //ADD TIME
-    document.querySelector(".range-slider").max = 2022;
-    document.querySelector(".range-slider").min = 1892;
-    document.querySelector(".range-slider").value = 2022;
-    document.querySelector(".range-slider").step = 10;
+    document.querySelector(".range-slider").max = 23;
+    document.querySelector(".range-slider").min = 0;
+    document.querySelector(".range-slider").value = 12;
+    document.querySelector(".range-slider").step = 1;
 
     document.querySelectorAll('.step').forEach(function(step){
         step.addEventListener("click", function(){
@@ -329,44 +355,142 @@ function createSequenceControls(){
 
             //increment or decrement depending on button clicked
             if (step.id == 'forward'){
-                index+=10; //increase year by 10
-                //wrap around from first year to last year
-                index = index > 2022 ? 1892 : index;
+                index+=1; //increase hour by 1
+                //wrap around from first hour to last hour
+                index = index > 23 ? 0 : index;
             } else if (step.id == 'reverse'){
-                index-= 10; //decrease year by 10
-                //wrap around from last year to first year
-                index = index < 1892 ? 2022 : index;
+                index-= 1; //decrease hour by 1
+                //wrap around from last hour to first hour
+                index = index < 0 ? 23 : index;
             };
             //update slider
         document.querySelector('.range-slider').value = index
+        //show current selected time of day
+        //format display time
+        if(index==12){
+            am='12:00PM'
+        }else if(index>12){
+            am=index-12+':00PM'
+        }else if(index==0){
+            am='12:00AM'
+        }else{
+            am=index+':00AM'
+        }
         //show year
-        updateMarker(index)
+        document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
+        updateTime(index)
         })
     })
     // input listener for slider
     document.querySelector('.range-slider').addEventListener('input', function(){
+        
         // get the new index value
         var index = this.value;
+        //format display time
+        if(index==12){
+            am='12:00PM'
+        }else if(index>12){
+            am=index-12+':00PM'
+        }else if(index==0){
+            am='12:00AM'
+        }else{
+            am=index+':00AM'
+        }
         //show year
-        document.querySelector('#year').innerHTML='<p>Year:' + index + '</p>'
-        updateMarker(index)
+        document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
+        updateTime(index)
     });
 };
-function createForm(){
-    var checkBox = document.querySelector('#form')
-    var dataList=['Subway','LIRR','Bus Route','Metro North']
-    for (i in dataList){
-        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + i +'" name="' + dataList[i] +'" value="Subway">');
-        checkBox.insertAdjacentHTML('beforeend','<label for="' + i +'">' + dataList[i] + '</label><br>');
+function createDropdown(traffic){
+    //create list of unique year values
+    var yearList=[]
+    for(var i = 0; i < traffic.length; i++) {
+        var year=traffic[i].properties.Date
+    //year is always last 4 characters
+    if (!yearList.includes(year.substring(year.length-4,year.length)))
+    yearList.push(year.substring(year.length-4,year.length))
+    yearList.sort()
     }
-
-}
-function createDropdown(){
     //add dropdown menu
-    material=document.querySelector('#dropdown')
-    material.insertAdjacentHTML('beforeend','<select name="material" id="material"><option value="" selected="selected">Choose Year</option></select>')
+    document.querySelector('#dropdown').insertAdjacentHTML('beforeend','<select name="year" id="year"><option value="" selected="selected">Choose Year</option></select>')
+    for (i in yearList){
+        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">' + yearList[i] + '</option>')
+        }
+
+    //add event listener to all dropdown menu options
+    document.querySelector('#year').addEventListener("change",updateTime)
+}
+function updateTime(index){
+    var key=''
+    if(index==12){
+        key='F11_00_12_00PM'
+    }else if(index==13){
+        key='F12_00_1_00PM'
+    }else if(index==1){
+        key='F12_00_1_00AM'
+    }else if(index==0){
+        key='F11_00_12_00AM'
+    }else if(index>13){
+        key='F'+parseInt(index-13)+'_00_'+parseInt(index-12)+'_00PM'
+    }else if(1<index<12){
+        key='F'+parseInt(index-1)+'_00_'+index+'_00AM'
+    }
+    /*
+    //first need to assign time and price fields
+    congestionLayer.setStyle({color:'#FED976'})
     
 
+    var popupContent =  "<p><b>Price:</b> " + feature.properties.street + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    congestionLayer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+    */
+    streetLayer.eachLayer(function (layer) {
+        //input traffic counts to get colo function
+        color=getColor(layer.feature.properties[key])
+
+        layer.setStyle({color:color})
+      });
+   
+}
+//from leaflet choropleth tutorial
+function getColor(d) {
+    return d > 1000 ? '#800026' :
+            d > 500  ? '#BD0026' :
+            d > 200  ? '#E31A1C' :
+            d > 100  ? '#FC4E2A' :
+            d > 50   ? '#FD8D3C' :
+            d > 20   ? '#FEB24C' :
+            d > 10   ? '#FED976' :
+                        '#FFEDA0';
+}
+function createForm(){
+    var checkBox = document.querySelector('#form')
+    var dataList=['Subway','LIRR','Bus Route','Metro North','Bike Route','Traffic']
+    for (i in dataList){
+        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + dataList[i] +'" name="' + dataList[i] +'" value="'+dataList[i]+'">');
+        checkBox.insertAdjacentHTML('beforeend','<label for="' + dataList[i] +'">' + dataList[i] + '</label><br>');
+        document.getElementById(dataList[i]).addEventListener("change",updateMap )
+    }
+}
+function updateMap(){
+    console.log(this.checked)
+    if(this.checked){
+    map.addLayer(streetLayer)
+    }else if(!this.checked){
+    map.removeLayer(streetLayer)
+    }
+}
+
+
+function style(feature) {
+    return {
+        weight: 2,
+        opacity: 1,
+        color: '#'+feature.properties.route_colo,
+        dashArray: '3',
+        fillOpacity: 0.7,
+        fillColor: '#'+feature.properties.route_colo
+    };
 }
 //groupby function for processData
 function groupBy(objectArray, property) {
@@ -391,3 +515,13 @@ function FileHelper(path){
     
 }
 document.addEventListener('DOMContentLoaded',createMap)
+
+/*
+geojson = L.geoJson(statesData, {
+    style: style,
+}).addTo(map);
+geojsonLayer.eachLayer()
+geojson.resetStyle
+geojson.setStyle
+//https://leafletjs.com/examples/choropleth/
+*/
