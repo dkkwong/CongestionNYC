@@ -1,0 +1,23 @@
+service_id,service_name,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+c_67755_b_78380_d_64,Year Round starting 11/14/22 (Sunday only),0,0,0,0,0,0,1,20221114,20231101
+c_67755_b_78380_d_32,Year Round starting 11/14/22 (Saturday only),0,0,0,0,0,1,0,20221114,20231101
+c_67755_b_78380_d_31,Year Round starting 11/14/22 (Weekday),1,1,1,1,1,0,0,20221114,20231101
+c_67781_b_none_d_0,9 & 23 Open - Saturday additional trips,0,0,0,0,0,0,0,20221114,20231101
+c_67705_b_none_d_0,JSQ-HARR Svc Outage - Sunday version 2,0,0,0,0,0,0,0,20221114,20231101
+c_67702_b_none_d_0,Weekend Construction - NWK-WTC Impacts - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_67701_b_none_d_0,Weekend Construction - NWK-WTC Impacts - Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_67352_b_none_d_0,Weekend Construction & WTC 5-Min Early Departures – Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_67351_b_none_d_0,Weekend Construction & WTC 5-Min Early Departures – Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_67317_b_none_d_0,WTC 5-Min Early Departures - Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_67316_b_none_d_0,Weekend Construction - NWK-WTC Impacts - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_67315_b_none_d_0,Weekend Construction - NWK-WTC Impacts - Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_67314_b_none_d_0,Weekday Construction - JSQ-NWK Impact,0,0,0,0,0,0,0,20221114,20231101
+c_67313_b_none_d_0,NWK-JSQ 40-Min Svc - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_67312_b_none_d_0,NWK-JSQ 40-Min Svc - Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_67259_b_none_d_0,WTC 5-Min Early Departures - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_67216_b_none_d_0,JSQ-HARR Svc Outage - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_45761_b_none_d_0,9 & 23 Open - Weekday,0,0,0,0,0,0,0,20221114,20231101
+c_45752_b_none_d_0,9 & 23 Open - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_45748_b_none_d_0,9 & 23 Open - Saturday,0,0,0,0,0,0,0,20221114,20231101
+c_45358_b_none_d_0,20-Min ATW Svc - Sunday,0,0,0,0,0,0,0,20221114,20231101
+c_24582_b_none_d_0,JSQ-33 Direct & NWPT-HOB Shuttle - Sunday,0,0,0,0,0,0,0,20221114,20231101

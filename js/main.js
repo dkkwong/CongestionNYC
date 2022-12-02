@@ -1,13 +1,20 @@
 //global variables
 var map,
 traffic,
+scenario,
 baseMaps,
 overlayMaps,
+yearIndex=12,
 streetLayer,
 congestionLayer,
-subwayLines,
+year=2021,
+subwayLayer=L.layerGroup(),
+metroNorthLayer=L.layerGroup(),
+lirrLayer=L.layerGroup(),
+busLayer=L.layerGroup(),
+bikeLayer=L.layerGroup(),
+pathLayer=L.layerGroup(),
 dataList; 
-var layerGroup = L.layerGroup()
 
 //function to instantiate the Leaflet map
 function createMap(){
@@ -34,8 +41,11 @@ function createMap(){
         minZoom: 9, //constrain zoom so users can't zoom out beyond default
         maxZoom: 17, //constrain zoom so users can only zoom in 2 levels beyond default
         maxBounds: bounds,
-        layers: [CartoDB_DarkMatter]
+        layers: [CartoDB_DarkMatter],
+        zoomControl: false,
+        renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
     });
+    L.control.zoom({position:'topright'}).addTo(map)
     //scale bar
     L.control.scale({ position: 'bottomright' }).addTo(map);
     baseMaps = {
@@ -43,11 +53,22 @@ function createMap(){
         "Basemap": CartoDB_DarkMatter,
         "Satellite": Esri_WorldImagery
     };
-    //overlayMaps = {
-    //    "Labels": Stamen_TonerLabels
-    //};
+    info = L.control({position: 'topleft'}),
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+        this.update();
+        return this._div;
+    };
 
+    // method that we will use to update the control based on feature properties passed
+    info.update = function (props) {
+        this._div.innerHTML = '<h4>Congestion Pricing Scenario</h4>' +  (props ?
+            '<b>Scenario: ' + props.Name + '</b>'+'<br>Peak price: $'+
+            props.Peak+'<br>Off-Peak price: $'+props.OffPeak+'<br>Overnight price: $'+props.Overnight+'<br>'+props.description 
+            : 'Choose from dropdown menu');
+    };
 
+info.addTo(map);
     getData();
 };
 
@@ -61,14 +82,19 @@ function getData(){
             traffic=json.features
             //create a Leaflet GeoJSON layer and add it to the map          
             streetLayer =L.geoJson(json,{
-                onEachFeature:onEachFeature3,
-                style:{color:'#FED976'}//default color
+                onEachFeature:onEachFeature3
             }).addTo(map);
-            
+            //add default color for 12pm
+            streetLayer.eachLayer(function (layer) {
+                //input traffic counts to get color function
+                color=getColor(layer.feature.properties['F11_00_12_00PM'])
+        
+                layer.setStyle({color:color})
+              });
             //use years from traffic data to make dropdown menu
-            createDropdown(traffic);
+            createDropdownTraffic(traffic);
         })
-/*
+
 //--------Subway----------
     fetch("data/Subway/Routes.json")
         .then(function(response){
@@ -76,11 +102,12 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map           
-            L.geoJson(json,{
+            var subwayRoute=L.geoJson(json,{
                 onEachFeature: onEachFeature2,
-                style: style
-            }).addTo(map);
-            
+                style: style,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        subwayLayer.addLayer(subwayRoute)
         })
 
     fetch("data/Subway/Stops.json")
@@ -89,10 +116,11 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json,{
-                onEachFeature: onEachFeature
-            }).addTo(map);
-            
+            var subwayStop=L.geoJson(json,{
+                onEachFeature: onEachFeature,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        subwayLayer.addLayer(subwayStop)
         })
 
 //-----Metro North------------
@@ -102,11 +130,13 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json,{
+            var northRoute=L.geoJson(json,{
                 onEachFeature:onEachFeatureRoutes,
-                style:style
-            }).addTo(map);
+                style:style,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
             
+        metroNorthLayer.addLayer(northRoute)
         })
     fetch("data/MetroNorth/Stops.json")
         .then(function(response){
@@ -114,23 +144,50 @@ function getData(){
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map            
-            L.geoJson(json,{
-                onEachFeature:onEachFeatureStops
-            }).addTo(map);
-            
+            var northStop=L.geoJson(json,{
+                onEachFeature:onEachFeatureStops,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        metroNorthLayer.addLayer(northStop)    
         })
-    
+//-------PATH--------
+    fetch("data/PATH/Routes.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //create a Leaflet GeoJSON layer and add it to the map            
+            var pathRoute=L.geoJson(json,{
+                onEachFeature:onEachFeaturePath,
+                style:stylePath,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        pathLayer.addLayer(pathRoute)
+        })
+    fetch("data/PATH/Stops.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //create a Leaflet GeoJSON layer and add it to the map            
+            var pathStop=L.geoJson(json,{
+                onEachFeature:onEachFeatureStops,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        pathLayer.addLayer(pathStop)    
+        })    
 //-------LIRR--------
     fetch("data/LIRR/LIRR_GTFS.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
-            console.log(data)
-            L.geoJson(data,{
+            var lirrRoute=L.geoJson(data,{
                 onEachFeature:onEachFeatureRoutes,
-                style:style
-            }).addTo(map);
+                style:style,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        lirrLayer.addLayer(lirrRoute)
         });
     fetch("data/LIRR/Stops.json")
         .then(function(response){
@@ -138,21 +195,26 @@ function getData(){
         })
         .then(function(data){
             
-            L.geoJson(data,{
-                onEachFeature:onEachFeatureStops
-            }).addTo(map);
+            var lirrStop=L.geoJson(data,{
+                onEachFeature:onEachFeatureStops,
+                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+            });
+        lirrLayer.addLayer(lirrStop) 
         });
-/*        
+        
+        
 //------Bus-------
     fetch("data/Bus/Routes.json")
         .then(function(response){
            return response.json();
         })
         .then(function(data){
-            L.geoJson(data,{
+            var busRoute=L.geoJson(data,{
                 onEachFeature:onEachFeature2,
-                style:style
-            }).addTo(map);
+                style:style,
+                renderer: L.canvas({ tolerance: 5 })//how close to something you need to clock
+            });
+        busLayer.addLayer(busRoute)
         });
     //look into adding fetch option 
     /*
@@ -168,36 +230,47 @@ function getData(){
         var stop_times = d3.csvParse(FileHelper("data/"+folders[i]+"/stop_times.txt"));
         processData(trips,stop_times)
     }
-    /*
     
-    
+ */   
     fetch("data/NewYorkCityBikeRoutes.geojson")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map
-            bikeRoutes=json.features
-            L.geoJson(json,{
-                onEachFeature:onEachFeature4
-            }).addTo(map);
+            var bikeRoute=L.geoJson(json,{
+                onEachFeature:onEachFeature4,
+                renderer: L.canvas({ tolerance: 5 })//how close to something you need to clock
+            });
+        bikeLayer.addLayer(bikeRoute)
         })
-*/
-    fetch("data/CongestionZone.json")
+
+    fetch("data/CongestionZone.geojson")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
+            var congestion=json
             //create a Leaflet GeoJSON layer and add it to the map         
             congestionLayer=L.geoJson(json,{
                 style:{color:'#FED976'}//default color
             }).addTo(map);
+            //add pop-up content
+            congestionLayer.bindPopup('Congestion Zone',{maxHeight:300}).openPopup;
+            //add congestion pricing scenarios
+            congestion.A={Name:'A',Peak:9,OffPeak:7,Overnight:5,description:'Base plan with no exemptions'}
+            congestion.B={Name:'B',Peak:10,OffPeak:8,Overnight:5,description:'Taxis and for hire vehicles charged max once per day'}
+            congestion.C={Name:'C',Peak:14,OffPeak:11,Overnight:7,description:'Drivers receive $6.55 credit for using tunnels. Taxis exempt from toll but for hire vehicles are not'}
+            congestion.D={Name:'D',Peak:19,OffPeak:14,Overnight:10,description:'Drivers receive $13.10 credit for using tunnels. No vehicle exemptions'}
+            congestion.E={Name:'E',Peak:23,OffPeak:17,Overnight:12,description:'Drivers receive $13.10 credit for using tunnels.Taxis exempt from tolls. For hire vehicles charged max 3 times per day'}
+            congestion.F={Name:'F',Peak:12,OffPeak:9,Overnight:7,description:'More expensive base plan. No exemptions of any kind'}
+        createDropdownZone(congestion)
         })
-        
+
     //add layer control to toggle layers after all data has been loaded
     createSequenceControls();
     createForm();
-    L.control.layers(baseMaps, overlayMaps,{ position: 'topright' }).addTo(map);
+    createLegend();
 };
 function processData(trips,stop_times){
     var schedule=[]
@@ -232,7 +305,6 @@ function processData(trips,stop_times){
         groupedRoute[i].start_time = t[0].time //first time listed
         groupedRoute[i].end_time = t[t.length-1].time //last time listed
     }
-    console.log(groupedRoute)
 }
 /*
 function processData(data){
@@ -324,16 +396,27 @@ function onEachFeatureRoutes(feature, layer) {
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
 };
+
 function onEachFeatureStops(feature, layer) {
     // create html string with all properties
     var popupContent = "";
-
+    
     popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    if(!feature.properties.OBJECTID){//PATH stops have no links
     popupContent += "<a href=" + "'" + feature.properties.stop_url + "' target='_blank'>More Information" + "</a>"
+    }
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
 };
+function onEachFeaturePath(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
 
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
+
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+};
 function createSequenceControls(){
     var sequence = document.querySelector('#sequence')
     //create slider
@@ -366,19 +449,11 @@ function createSequenceControls(){
             //update slider
         document.querySelector('.range-slider').value = index
         //show current selected time of day
-        //format display time
-        if(index==12){
-            am='12:00PM'
-        }else if(index>12){
-            am=index-12+':00PM'
-        }else if(index==0){
-            am='12:00AM'
-        }else{
-            am=index+':00AM'
-        }
-        //show year
-        document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
+        formatTime(index);
         updateTime(index)
+        info.update(scenario)
+        yearIndex=index
+    return yearIndex
         })
     })
     // input listener for slider
@@ -386,29 +461,53 @@ function createSequenceControls(){
         
         // get the new index value
         var index = this.value;
-        //format display time
-        if(index==12){
-            am='12:00PM'
-        }else if(index>12){
-            am=index-12+':00PM'
-        }else if(index==0){
-            am='12:00AM'
-        }else{
-            am=index+':00AM'
-        }
-        //show year
-        document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
-        updateTime(index)
+        formatTime(index);
+        updateTime(index);
+        info.update(scenario);
+        yearIndex=index
+    return yearIndex
     });
 };
-function createDropdown(traffic){
+function formatTime(index){
+    //format display time
+    if(index==12){
+        am='12:00PM'
+    }else if(index>12){
+        am=index-12+':00PM'
+    }else if(index==0){
+        am='12:00AM'
+    }else{
+        am=index+':00AM'
+    }
+    //show year
+    document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
+    return am
+}
+function createDropdownZone(congestion){
+    //create list of unique year values
+    congestionList=['A','B','C','D','E','F']    
+    //add dropdown menu
+    document.querySelector('#dropdown').insertAdjacentHTML('beforeend','<select name="congestion" id="congestion"><option value="" selected="selected">Choose Scenario</option></select>')
+    for (i in congestionList){
+        document.querySelector('#congestion').insertAdjacentHTML('beforeend','<option class="congestion-option">' + congestionList[i] + '</option>')
+        }
+    
+    //add event listener to all dropdown menu options
+    document.querySelector('#congestion').addEventListener("change",function(event){
+        var key=document.querySelector('#congestion').value
+        scenario=congestion[key]
+        info.update(congestion[key])
+        return scenario//make globally available
+    })
+}
+function createDropdownTraffic(traffic){
     //create list of unique year values
     var yearList=[]
     for(var i = 0; i < traffic.length; i++) {
-        var year=traffic[i].properties.Date
+        var date=traffic[i].properties.Date
     //year is always last 4 characters
-    if (!yearList.includes(year.substring(year.length-4,year.length)))
-    yearList.push(year.substring(year.length-4,year.length))
+    if (!yearList.includes(date.substring(date.length-4,date.length)))
+    yearList.push(date.substring(date.length-4,date.length))
     yearList.sort()
     }
     //add dropdown menu
@@ -418,7 +517,12 @@ function createDropdown(traffic){
         }
 
     //add event listener to all dropdown menu options
-    document.querySelector('#year').addEventListener("change",updateTime)
+    document.querySelector('#year').addEventListener("change",function(){
+        year= this.value
+
+        updateTime(yearIndex)
+        return year//globally set the year
+    })
 }
 function updateTime(index){
     var key=''
@@ -427,7 +531,7 @@ function updateTime(index){
     }else if(index==13){
         key='F12_00_1_00PM'
     }else if(index==1){
-        key='F12_00_1_00AM'
+        key='F12_00_1_00_AM'
     }else if(index==0){
         key='F11_00_12_00AM'
     }else if(index>13){
@@ -435,61 +539,149 @@ function updateTime(index){
     }else if(1<index<12){
         key='F'+parseInt(index-1)+'_00_'+index+'_00AM'
     }
-    /*
-    //first need to assign time and price fields
-    congestionLayer.setStyle({color:'#FED976'})
+    //update traffic color by time of day
+    var time=formatTime(index)
+    dateList=[]
+    streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
+        var date=layer.feature.properties.Date
+        layer.removeFrom(map)
+        if ((year==date.substring(date.length-4,date.length))){//add only years matching chosen date to map
+            color=getColor(layer.feature.properties[key])
+            layer.setStyle({color:color})
+            var popupContent = "";
     
-
-    var popupContent =  "<p><b>Price:</b> " + feature.properties.street + "</p>";
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    congestionLayer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-    */
-    streetLayer.eachLayer(function (layer) {
-        //input traffic counts to get colo function
-        color=getColor(layer.feature.properties[key])
-
-        layer.setStyle({color:color})
-      });
-   
+            popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
+            popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[key]+ "</p>";
+            popupContent += "<p><b>Time:</b> " + time+ "</p>";
+            //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+            layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+            layer.addTo(map) 
+        }
+    });
 }
 //from leaflet choropleth tutorial
 function getColor(d) {
-    return d > 1000 ? '#800026' :
-            d > 500  ? '#BD0026' :
-            d > 200  ? '#E31A1C' :
-            d > 100  ? '#FC4E2A' :
-            d > 50   ? '#FD8D3C' :
-            d > 20   ? '#FEB24C' :
-            d > 10   ? '#FED976' :
-                        '#FFEDA0';
+    return  d > 2500  ? '#bd0026' : //from color brewer YlOR 5 classes
+            d > 500  ? '#f03b20' :
+            d > 100   ? '#fd8d3c' :
+            d > 10   ? '#fecc5c' :
+            d > 0   ? '#ffffb2' :
+                        '#ffffb2';
+}
+function createLegend(){
+    var legend = L.control({position: 'bottomleft'});
+
+    legend.onAdd = function (map) {
+
+        var div = L.DomUtil.create('div', 'info legend'),
+            grades = [0, 10, 100, 500, 2500],
+            labels = ['<b>Traffic Counts</b>'];
+        // loop through our density intervals and generate a label with a colored square for each interval
+        for (var i = 0; i < grades.length; i++) {
+            div.innerHTML +=
+                labels.push(
+                '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+'));
+        }
+        div.innerHTML = labels.join('<br>');
+        return div;
+    };
+    legend.addTo(map);
 }
 function createForm(){
     var checkBox = document.querySelector('#form')
-    var dataList=['Subway','LIRR','Bus Route','Metro North','Bike Route','Traffic']
-    for (i in dataList){
-        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + dataList[i] +'" name="' + dataList[i] +'" value="'+dataList[i]+'">');
-        checkBox.insertAdjacentHTML('beforeend','<label for="' + dataList[i] +'">' + dataList[i] + '</label><br>');
-        document.getElementById(dataList[i]).addEventListener("change",updateMap )
+    var unchecked=['Subway','LIRR','Bus Route','Metro North','Bike Route','PATH']
+    var checked=['Traffic']
+    for (i in unchecked){
+        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + unchecked[i] +'" name="' + unchecked[i] +'" value="'+unchecked[i]+'">');
+        checkBox.insertAdjacentHTML('beforeend','<label for="' + unchecked[i] +'">' + unchecked[i] + '</label><br>');
+        
+        document.getElementById(unchecked[i]).addEventListener("change",updateMap )
+    }for (i in checked){
+        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + checked[i] +'" name="' + checked[i] +'" value="'+checked[i]+'"checked>')
+        checkBox.insertAdjacentHTML('beforeend','<label for="' + checked[i] +'">' + checked[i] + '</label><br>')
+        
+        document.getElementById(checked[i]).addEventListener("change",updateMap )
     }
 }
 function updateMap(){
-    console.log(this.checked)
-    if(this.checked){
-    map.addLayer(streetLayer)
-    }else if(!this.checked){
-    map.removeLayer(streetLayer)
+    //layer control
+    if(this.value=='Bike Route'){
+        if(this.checked){
+            map.addLayer(bikeLayer)
+        }else if(!this.checked){
+            map.removeLayer(bikeLayer)
+        }
+    }
+    if(this.value=='Subway'){
+        if(this.checked){
+            map.addLayer(subwayLayer)
+        }else if(!this.checked){
+            map.removeLayer(subwayLayer)
+        }
+    }
+    if(this.value=='LIRR'){
+        if(this.checked){
+            map.addLayer(lirrLayer)
+        }else if(!this.checked){
+            map.removeLayer(lirrLayer)
+        }
+    }
+    if(this.value=='Metro North'){
+        if(this.checked){
+            map.addLayer(metroNorthLayer)
+        }else if(!this.checked){
+            map.removeLayer(metroNorthLayer)
+        }
+    }
+    if(this.value=='Traffic'){
+        if(this.checked){
+            map.addLayer(streetLayer)
+        }else if(!this.checked){
+            map.removeLayer(streetLayer)
+        }
+    }
+    if(this.value=='Congestion Zone'){
+        if(this.checked){
+            map.addLayer(congestionLayer)
+        }else if(!this.checked){
+            map.removeLayer(congestionLayer)
+        }
+    }
+    if(this.value=='Bus Route'){
+        if(this.checked){
+            map.addLayer(busLayer)
+        }else if(!this.checked){
+            map.removeLayer(busLayer)
+        }
+    }
+    if(this.value=='PATH'){
+        if(this.checked){
+            map.addLayer(pathLayer)
+        }else if(!this.checked){
+            map.removeLayer(pathLayer)
+        }
     }
 }
 
-
+//default style for layers
 function style(feature) {
     return {
         weight: 2,
         opacity: 1,
         color: '#'+feature.properties.route_colo,
-        dashArray: '3',
         fillOpacity: 0.7,
         fillColor: '#'+feature.properties.route_colo
+    };
+}
+function stylePath(feature) {
+
+    return {
+        weight: 2,
+        opacity: 1,
+        color: '#'+feature.properties.route_color,
+        fillOpacity: 0.7,
+        fillColor: '#'+feature.properties.route_color
     };
 }
 //groupby function for processData
@@ -524,4 +716,6 @@ geojsonLayer.eachLayer()
 geojson.resetStyle
 geojson.setStyle
 //https://leafletjs.com/examples/choropleth/
+https://leafletjs.com/examples/custom-icons/
+https://gis.stackexchange.com/questions/75590/setstyle-function-for-geojson-features-leaflet
 */

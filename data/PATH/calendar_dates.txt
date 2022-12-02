@@ -1,0 +1,11 @@
+service_id,date,holiday_name,exception_type
+c_45748_b_none_d_0,20221124,9 & 23 Open Ð Saturday,1
+c_45761_b_none_d_0,20221125,9 & 23 Open - Weekday,1
+c_67781_b_none_d_0,20221126,9 & 23 Open - Saturday additional trips,1
+c_45752_b_none_d_0,20221127,9 & 23 Open Ð Sunday,1
+c_45761_b_none_d_0,20221128,9 & 23 Open - Weekday,1
+c_67755_b_78380_d_31,20221124,Year Round starting 11/14/22 (Weekday),2
+c_67755_b_78380_d_31,20221125,Year Round starting 11/14/22 (Weekday),2
+c_67755_b_78380_d_32,20221126,Year Round starting 11/14/22 (Saturday only),2
+c_67755_b_78380_d_64,20221127,Year Round starting 11/14/22 (Sunday only),2
+c_67755_b_78380_d_31,20221128,Year Round starting 11/14/22 (Weekday),2
