@@ -6,26 +6,79 @@
             <title></title>
     
         
+        <link rel="stylesheet" href="css/bootstrap.min.css">
         <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="./lib/scrollmap.css">
         <link rel="stylesheet" href="lib/leaflet/leaflet.css">
         
     </head>
 
     <body style="background-color:#dcdce0;">
-        <span id="controls">
-            <div id="form"></div>
-            <div id="time">
-                <p>Time:12:00PM</p>
+        <div class="content">
+            <div class="center title">
+                <h1>Congestion Pricing in New York City</h1>
             </div>
-            <div id="sequence"></div>
-            <div id="dropdown"></div>
-            
-        </span>
-        <div id="map"></div>
-            
+            <div class="row">
+                <div class="left">
+                    <h2>What is Congestion Pricing?</h2>
+                    <br>
+                    <p>Under New York's congestion pricing plan drivers will have to pay a toll to drive through lower Manhattan. The price of the toll will be higher during daytime and lower at night.</p>
+                    <br>
+                    <p>Drivers will only be charged once per day for entering or staying within the congestion zone.</p>
+                    <br>
+                    <p>The plan is estimated to generate 1 Billion for the MTA. 80% will go for subways and buses, 10% to the LIRR, and 10% to the Metro North.</p>
+                    <br>
+                    <p>Congestion pricing in New York is currently planned to be implemented mid 2023</p>
 
+                </div>
+                <div class="right">
+                    <img class="fit" src="img/graphic3.png">
+                    <p class="center">source: MTA</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="left">
+                    <h2>Why does New York City need it?</h2>
+                    <br>
+                    <p>A golbal traffic survey by INRIX found that New York City had the worst traffic on the continent in 2021.</p>
+                    <br>
+                    <p>Before COVID the MTA estimated average traffic speeds within the propsed congestion zone were just 7MPH.</p>
+                    <br>
+                    <p>This traffic results in millions of hours lost for New Yorkers and over $8 Billion in cost for the city, which doesn't include damages from traffic accidents or the increased air pollution.</p>
+                    <br>
+                    <p>New York City's plan is based on sucessful congestion pricing plans in London, Singapore, Stockholm, and Milan. These cities saw ~25% drop in traffic after their plans were enacted.</p>
+                    
+                </div>
+                <div class="right">
+                    <img class="fit" src="img/graphic2.png">
+                    <p class="center">source: INRIX 2021 traffic report</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="left">
+                    <h2>Who will be affected?</h2>
+                    <br>
+                    <p>Residents making less than $60,000 who live in the congestion zone will be <b>refunded</b> any extra cost in the form of a state tax credit. </p>
+                    <br>
+                    <p>Most commuters do not drive to Lower Manhattan.The MTA estimates 75%-80% of commuters currently use alternative forms of transportation. </p>
+                    <br>
+                    <p>All New Yorkers will benefit from reduced air pollution, traffic noise, and increased speeds.</p>
+                </div>
+                <div class="right">
+                    <img class="fit" src="img/graphic1.png">
+                    <p class="center">source: Sam Schwartz</p>
+                </div>
+            </div>
+            <div class="row no-margin">
+                <div id="map"></div>
+            </div>
+            
+        </div>
         <script type="text/javascript" src="lib/leaflet/leaflet-src.js"></script>
         <script type="text/javascript" src="lib/d3.min.js"></script>
+        <script type="text/javascript" src="lib/jquery-3.5.1.min.js"></script>
+        <script type="text/javascript" src="lib/bootstrap.min.js"></script>
+        <script type="text/javascript" src="./lib/scrollmap.js"></script>
         <script type="text/javascript" src="js/main.js"></script>
 
     </body>

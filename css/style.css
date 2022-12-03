@@ -1,8 +1,11 @@
 /*---------Map Elements----------*/
 #map { height: 600px;    
-    width: 70%;
+    width: 100%;
     display: inline-block;
-    }
+    position:relative;
+    bottom:10%;
+    z-index:9
+}
 .leaflet-popup-content{
     display: inline-block;
     
@@ -49,8 +52,15 @@
 
 }
 /*--------Legend Elements-------*/
-.controls{display:inline-block;
-
+.controls{
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    height:400px;
+    margin-bottom:30px;
 }
 .sequence{
     display:inline-block;
@@ -62,5 +72,8 @@
     display:block;
 }
 .time{
+    display:block;
+}
+.h6{/*check box labels*/
     display:block;
 }

@@ -4,10 +4,10 @@ traffic,
 scenario,
 baseMaps,
 overlayMaps,
-yearIndex=12,
+timeIndex=12,
 streetLayer,
 congestionLayer,
-year=2021,
+trafficType='Max',
 subwayLayer=L.layerGroup(),
 metroNorthLayer=L.layerGroup(),
 lirrLayer=L.layerGroup(),
@@ -36,10 +36,10 @@ function createMap(){
         bounds = L.latLngBounds(southWest,northEast)
     //create the map
     map = L.map('map', {
-        center: [40.7648, -73.9808],
-        zoom: 12,
+        center: [40.7348, -73.9838],
+        zoom: 13,
         minZoom: 9, //constrain zoom so users can't zoom out beyond default
-        maxZoom: 17, //constrain zoom so users can only zoom in 2 levels beyond default
+        maxZoom: 19, //constrain zoom so users can only zoom in 2 levels beyond default
         maxBounds: bounds,
         layers: [CartoDB_DarkMatter],
         zoomControl: false,
@@ -47,7 +47,7 @@ function createMap(){
     });
     L.control.zoom({position:'topright'}).addTo(map)
     //scale bar
-    L.control.scale({ position: 'bottomright' }).addTo(map);
+    L.control.scale({ position: 'bottomleft' }).addTo(map);
     baseMaps = {
         //name in legend      associated layer
         "Basemap": CartoDB_DarkMatter,
@@ -63,38 +63,17 @@ function createMap(){
     // method that we will use to update the control based on feature properties passed
     info.update = function (props) {
         this._div.innerHTML = '<h4>Congestion Pricing Scenario</h4>' +  (props ?
-            '<b>Scenario: ' + props.Name + '</b>'+'<br>Peak price: $'+
-            props.Peak+'<br>Off-Peak price: $'+props.OffPeak+'<br>Overnight price: $'+props.Overnight+'<br>'+props.description 
+            '<b>Scenario: ' + props.Name + '</b>'+'<br>Peak price(6am-8pm): $'+
+            props.Peak+'<br>Off-Peak price(8pm-10pm): $'+props.OffPeak+'<br>Overnight price(10pm-6am): $'+props.Overnight+'<br>'+props.description 
             : 'Choose from dropdown menu');
     };
 
-info.addTo(map);
+    info.addTo(map);
+    map.doubleClickZoom.disable ()
     getData();
 };
 
 function getData(){
-    fetch("data/Streets.json")
-        .then(function(response){
-            return response.json();
-        })
-        .then(function(json){
-            //make data globally available
-            traffic=json.features
-            //create a Leaflet GeoJSON layer and add it to the map          
-            streetLayer =L.geoJson(json,{
-                onEachFeature:onEachFeature3
-            }).addTo(map);
-            //add default color for 12pm
-            streetLayer.eachLayer(function (layer) {
-                //input traffic counts to get color function
-                color=getColor(layer.feature.properties['F11_00_12_00PM'])
-        
-                layer.setStyle({color:color})
-              });
-            //use years from traffic data to make dropdown menu
-            createDropdownTraffic(traffic);
-        })
-
 //--------Subway----------
     fetch("data/Subway/Routes.json")
         .then(function(response){
@@ -118,6 +97,12 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map            
             var subwayStop=L.geoJson(json,{
                 onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng,{clickable: true,icon: L.icon({
+                        iconUrl: 'img/stop.svg',
+                        iconSize: [10, 10], // size of the icon
+                    })})
+                },
                 renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         subwayLayer.addLayer(subwayStop)
@@ -129,11 +114,11 @@ function getData(){
             return response.json();
         })
         .then(function(json){
+            console.log(json)
             //create a Leaflet GeoJSON layer and add it to the map            
             var northRoute=L.geoJson(json,{
-                onEachFeature:onEachFeatureRoutes,
-                style:style,
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                onEachFeature:onEachFeaturePath,
+                style:stylePath,
             });
             
         metroNorthLayer.addLayer(northRoute)
@@ -146,6 +131,12 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map            
             var northStop=L.geoJson(json,{
                 onEachFeature:onEachFeatureStops,
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng,{clickable: true,icon: L.icon({
+                        iconUrl: 'img/Path.svg',
+                        iconSize: [12, 12], // size of the icon
+                    })})
+                },
                 renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         metroNorthLayer.addLayer(northStop)    
@@ -172,6 +163,12 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map            
             var pathStop=L.geoJson(json,{
                 onEachFeature:onEachFeatureStops,
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng,{clickable: true,icon: L.icon({
+                        iconUrl: 'img/Path.svg',
+                        iconSize: [9, 9], // size of the icon
+                    })})
+                },
                 renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         pathLayer.addLayer(pathStop)    
@@ -197,6 +194,12 @@ function getData(){
             
             var lirrStop=L.geoJson(data,{
                 onEachFeature:onEachFeatureStops,
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng,{clickable: true,icon: L.icon({
+                        iconUrl: 'img/Path.svg',
+                        iconSize: [12, 12], // size of the icon
+                    })})
+                },
                 renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         lirrLayer.addLayer(lirrStop) 
@@ -240,9 +243,31 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map
             var bikeRoute=L.geoJson(json,{
                 onEachFeature:onEachFeature4,
+                style:{color:'#1aa342'},
                 renderer: L.canvas({ tolerance: 5 })//how close to something you need to clock
             });
         bikeLayer.addLayer(bikeRoute)
+        })
+    fetch("data/Streets.json")
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json){
+            //make data globally available
+            traffic=json.features
+            //create a Leaflet GeoJSON layer and add it to the map          
+            streetLayer =L.geoJson(json,{
+                onEachFeature:onEachFeature3
+            }).addTo(map);
+            //add default color for 12pm
+            streetLayer.eachLayer(function (layer) {
+                //input traffic counts to get color function
+                color=getColor(layer.feature.properties['F11_00_12_00PM'])
+        
+                layer.setStyle({color:color,weight:5})
+              });
+            //use years from traffic data to make dropdown menu
+            //createDropdownTraffic(traffic);
         })
 
     fetch("data/CongestionZone.geojson")
@@ -267,7 +292,7 @@ function getData(){
         createDropdownZone(congestion)
         })
 
-    //add layer control to toggle layers after all data has been loaded
+    createControls();
     createSequenceControls();
     createForm();
     createLegend();
@@ -452,8 +477,8 @@ function createSequenceControls(){
         formatTime(index);
         updateTime(index)
         info.update(scenario)
-        yearIndex=index
-    return yearIndex
+        timeIndex=index
+    return timeIndex
         })
     })
     // input listener for slider
@@ -464,8 +489,8 @@ function createSequenceControls(){
         formatTime(index);
         updateTime(index);
         info.update(scenario);
-        yearIndex=index
-    return yearIndex
+        timeIndex=index
+    return timeIndex
     });
 };
 function formatTime(index){
@@ -480,7 +505,7 @@ function formatTime(index){
         am=index+':00AM'
     }
     //show year
-    document.querySelector('#time').innerHTML='<p>Time:' + am +'</p>'
+    document.querySelector('#time').innerHTML='<h5><b>Time:</b>' + am +'</h5>'
     return am
 }
 function createDropdownZone(congestion){
@@ -491,7 +516,6 @@ function createDropdownZone(congestion){
     for (i in congestionList){
         document.querySelector('#congestion').insertAdjacentHTML('beforeend','<option class="congestion-option">' + congestionList[i] + '</option>')
         }
-    
     //add event listener to all dropdown menu options
     document.querySelector('#congestion').addEventListener("change",function(event){
         var key=document.querySelector('#congestion').value
@@ -499,8 +523,9 @@ function createDropdownZone(congestion){
         info.update(congestion[key])
         return scenario//make globally available
     })
-}
+}/*
 function createDropdownTraffic(traffic){
+    
     //create list of unique year values
     var yearList=[]
     for(var i = 0; i < traffic.length; i++) {
@@ -515,49 +540,134 @@ function createDropdownTraffic(traffic){
     for (i in yearList){
         document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">' + yearList[i] + '</option>')
         }
-
+        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">All Years</option>')
+        
+        document.querySelector('#dropdown').insertAdjacentHTML('beforeend','<select name="year" id="year"><option value="" selected="selected">Choose Traffic Type</option></select>')
+        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Max</option>')
+        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Average</option>')
+        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Minimum</option>')
     //add event listener to all dropdown menu options
     document.querySelector('#year').addEventListener("change",function(){
-        year= this.value
-
-        updateTime(yearIndex)
-        return year//globally set the year
+        trafficType= this.value
+        console.log(trafficType)
+        updateTime(timeIndex)
+        return trafficType//globally set the year
+        
     })
-}
+}*/
 function updateTime(index){
-    var key=''
+    var id=''
     if(index==12){
-        key='F11_00_12_00PM'
+        id='F11_00_12_00PM'
     }else if(index==13){
-        key='F12_00_1_00PM'
+        id='F12_00_1_00PM'
     }else if(index==1){
-        key='F12_00_1_00_AM'
+        id='F12_00_1_00_AM'
     }else if(index==0){
-        key='F11_00_12_00AM'
+        id='F11_00_12_00AM'
     }else if(index>13){
-        key='F'+parseInt(index-13)+'_00_'+parseInt(index-12)+'_00PM'
+        id='F'+parseInt(index-13)+'_00_'+parseInt(index-12)+'_00PM'
     }else if(1<index<12){
-        key='F'+parseInt(index-1)+'_00_'+index+'_00AM'
+        id='F'+parseInt(index-1)+'_00_'+index+'_00AM'
     }
     //update traffic color by time of day
     var time=formatTime(index)
     dateList=[]
+    trafficList=[]
+    for(var i = 0; i < traffic.length; i++) {
+    trafficList.push(traffic[i].properties)
+    }
+    var streetGroup=groupBy(trafficList,'SegmentID')
     streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
+        color=getColor(layer.feature.properties[id])
+        layer.setStyle({color:color})
+        var popupContent = "";//add pop-ups to displayed streets
+
+            popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
+            popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[id]+ "</p>";
+            popupContent += "<p><b>Time:</b> " + time+ "</p>";
+        //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+        layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+        //trafficList.push(layer.feature.properties)
+        /*
         var date=layer.feature.properties.Date
         layer.removeFrom(map)
         if ((year==date.substring(date.length-4,date.length))){//add only years matching chosen date to map
-            color=getColor(layer.feature.properties[key])
+            color=getColor(layer.feature.properties[id])
             layer.setStyle({color:color})
-            var popupContent = "";
+            var popupContent = "";//add pop-ups to displayed streets
     
             popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
-            popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[key]+ "</p>";
+            popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[id]+ "</p>";
             popupContent += "<p><b>Time:</b> " + time+ "</p>";
             //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
             layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
             layer.addTo(map) 
-        }
+        }*/
     });
+    /*
+    var trafficMax=[]
+    var trafficMin=[]
+    var trafficAverage=[]
+    var streetGroup=groupBy(trafficList,'SegmentID')
+    for(key in streetGroup){
+        //calculate max,min, and average values for each street
+        average=0
+        for(var i = 0; i < streetGroup[key].length; i++) {
+            max = streetGroup[key][0][id]
+            if(streetGroup[key][i][id]>max){
+            max=(streetGroup[key][i][id])
+            }
+            min=streetGroup[key][0][id]
+            if(streetGroup[key][i][id]<min){
+            min=(streetGroup[key][i][id])
+            }
+            average+=parseInt(streetGroup[key][i][id])
+        }
+        var popupContent = "";//add pop-ups to displayed streets
+        if(trafficType='Max'){
+            color=getColor(max);
+            popupContent += "<p><b>Traffic Count:</b> " + max+ "</p>";
+        }else if(trafficType='Min'){
+            color=getColor(min);
+            popupContent += "<p><b>Traffic Count:</b> " + min+ "</p>";
+        }else if(trafficType='Average'){
+            color=getColor(average);
+            popupContent += "<p><b>Traffic Count:</b> " + average+ "</p>";
+        }
+        if(layer.feature.properties.SegmentID==key){
+            layer.setStyle({color:color})
+
+            popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
+            popupContent += "<p><b>Time:</b> " + time+ "</p>";
+            //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+            layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+        }
+
+    }
+    
+    streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
+        layer.removeFrom(map)
+        var popupContent = "";//add pop-ups to displayed streets
+        if(trafficType='Max'){
+            color=getColor(max);
+            popupContent += "<p><b>Traffic Count:</b> " + max+ "</p>";
+        }else if(trafficType='Min'){
+            color=getColor(min);
+            popupContent += "<p><b>Traffic Count:</b> " + min+ "</p>";
+        }else if(trafficType='Average'){
+            color=getColor(average);
+            popupContent += "<p><b>Traffic Count:</b> " + average+ "</p>";
+        }
+        console.log(color)
+        layer.setStyle({color:color})
+
+        popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
+        popupContent += "<p><b>Time:</b> " + time+ "</p>";
+        //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+        layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
+        layer.addTo(map)
+    })*/
 }
 //from leaflet choropleth tutorial
 function getColor(d) {
@@ -568,8 +678,35 @@ function getColor(d) {
             d > 0   ? '#ffffb2' :
                         '#ffffb2';
 }
+//add control panel
+function createControls(){
+    var controls = L.control({position: 'bottomleft'});
+
+    controls.onAdd = function (map) {
+
+        var div = L.DomUtil.create('div', 'controls')
+        div.innerHTML+='<div id="time"><h5><b>Time:</b>12:00PM</h5></div>'
+        div.innerHTML+='<div id="sequence"></div><br>'
+        div.innerHTML+='<div id="dropdown"></div><br>'
+        div.innerHTML+='<div id="formTitle"><h5>Add Data</h5></div>'
+        div.innerHTML+='<div id="form"></div>'
+        return div;
+    };
+
+    controls.addTo(map);
+    // Disable dragging when user's cursor enters the element
+    controls.getContainer().addEventListener('mouseover', function () {
+        map.dragging.disable();
+    });
+
+    // Re-enable dragging when user's cursor leaves the element
+    controls.getContainer().addEventListener('mouseout', function () {
+        map.dragging.enable();
+    });
+
+}
 function createLegend(){
-    var legend = L.control({position: 'bottomleft'});
+    var legend = L.control({position: 'bottomright'});
 
     legend.onAdd = function (map) {
 
@@ -592,16 +729,17 @@ function createForm(){
     var checkBox = document.querySelector('#form')
     var unchecked=['Subway','LIRR','Bus Route','Metro North','Bike Route','PATH']
     var checked=['Traffic']
-    for (i in unchecked){
-        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + unchecked[i] +'" name="' + unchecked[i] +'" value="'+unchecked[i]+'">');
-        checkBox.insertAdjacentHTML('beforeend','<label for="' + unchecked[i] +'">' + unchecked[i] + '</label><br>');
-        
-        document.getElementById(unchecked[i]).addEventListener("change",updateMap )
-    }for (i in checked){
+    for (i in checked){
         checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + checked[i] +'" name="' + checked[i] +'" value="'+checked[i]+'"checked>')
-        checkBox.insertAdjacentHTML('beforeend','<label for="' + checked[i] +'">' + checked[i] + '</label><br>')
+        checkBox.insertAdjacentHTML('beforeend','<label for="' + checked[i] +'"><h6>' + checked[i] + '</h6></label><br>')
         
         document.getElementById(checked[i]).addEventListener("change",updateMap )
+    }
+    for (i in unchecked){
+        checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + unchecked[i] +'" name="' + unchecked[i] +'" value="'+unchecked[i]+'">');
+        checkBox.insertAdjacentHTML('beforeend','<label for="' + unchecked[i] +'"><h6>' + unchecked[i] + '</h6></label><br>');
+        
+        document.getElementById(unchecked[i]).addEventListener("change",updateMap )
     }
 }
 function updateMap(){
@@ -662,6 +800,7 @@ function updateMap(){
             map.removeLayer(pathLayer)
         }
     }
+    streetLayer.bringToFront();
 }
 
 //default style for layers
