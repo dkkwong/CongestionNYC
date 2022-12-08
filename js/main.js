@@ -39,9 +39,12 @@ function createMap(){
         zoomControl: false,
         renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
     });
+    //zoom buttons
     L.control.zoom({position:'topright'}).addTo(map)
     //scale bar
     L.control.scale({ position: 'bottomleft' }).addTo(map);
+
+    //scenario info panel
     info = L.control({position: 'topleft'}),
     info.onAdd = function (map) {
         this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
@@ -49,7 +52,7 @@ function createMap(){
         return this._div;
     };
 
-    // method that we will use to update the control based on feature properties passed
+    // method  to update the control based on feature properties passed
     info.update = function (props) {
         this._div.innerHTML = '<h4>Congestion Pricing Scenario</h4>' +  (props ?
             '<b>Scenario: ' + props.Name + '</b>'+'<br>Peak price(6am-8pm): $'+
@@ -72,7 +75,7 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map           
             var subwayRoute=L.geoJson(json,{
                 onEachFeature: onEachFeature2,
-                style: style,
+                style: stylePath,
                 renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         subwayLayer.addLayer(subwayRoute)
@@ -83,6 +86,7 @@ function getData(){
             return response.json();
         })
         .then(function(json){
+            console.log(json)
             //create a Leaflet GeoJSON layer and add it to the map            
             var subwayStop=L.geoJson(json,{
                 onEachFeature: onEachFeature,
@@ -275,13 +279,14 @@ function onEachFeature(feature, layer) {
     var popupContent = "";
 
     popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    /*
     if(feature.properties.stop_id[0]=='9'){//exception for 42nd shuttle
         popupContent += "<p><b>Route:</b>S</p>";
     }else if(feature.properties.stop_id[0]=='H'){//exception for Far Rockaway
         popupContent += "<p><b>Route:</b>A</p>";
     }else{
         popupContent += "<p><b>Route:</b> " + feature.properties.stop_id[0] + "</p>";
-    }
+    }*/
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
 };
@@ -289,8 +294,8 @@ function onEachFeature2(feature, layer) {
     // create html string with all properties
     var popupContent = "";
     
-    popupContent += "<p><b>Route:</b> " + feature.properties.route_shor + "</p>";
-    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
+    popupContent += "<p><b>Route:</b> " + feature.properties.route_short_name + "</p>";
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
     popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
     //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
     layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
