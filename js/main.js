@@ -2,8 +2,6 @@
 var map,
 traffic,
 scenario,
-baseMaps,
-overlayMaps,
 timeIndex=12,
 streetLayer,
 congestionLayer,
@@ -26,13 +24,9 @@ function createMap(){
 	subdomains: 'abcd',
 	maxZoom: 20
     });
-    var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-    })
-
     //vars to hold bounds
     var southWest = [40.422838, -74.554147],
-        northEast = [41.200653, -73.315940],
+        northEast = [42.000653, -72.315940],
         bounds = L.latLngBounds(southWest,northEast)
     //create the map
     map = L.map('map', {
@@ -48,11 +42,6 @@ function createMap(){
     L.control.zoom({position:'topright'}).addTo(map)
     //scale bar
     L.control.scale({ position: 'bottomleft' }).addTo(map);
-    baseMaps = {
-        //name in legend      associated layer
-        "Basemap": CartoDB_DarkMatter,
-        "Satellite": Esri_WorldImagery
-    };
     info = L.control({position: 'topleft'}),
     info.onAdd = function (map) {
         this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
@@ -219,22 +208,6 @@ function getData(){
             });
         busLayer.addLayer(busRoute)
         });
-    //look into adding fetch option 
-    /*
-    var promises = [];    
-        promises.push(d3.csv("data/LandUse_Percentage.csv")); //load attributes from csv     
-        promises.push(d3.json("data/cb_2018_us_state_5m.topojson")); //load choropleth spatial data    
-        Promise.all(promises).then(getData);
-    
-    
-    var folders=['Bus','LIRR','MetroNorth','Subway']
-    for (var i in folders){
-        var trips= d3.csvParse(FileHelper("data/"+folders[i]+"/trips.txt"));
-        var stop_times = d3.csvParse(FileHelper("data/"+folders[i]+"/stop_times.txt"));
-        processData(trips,stop_times)
-    }
-    
- */   
     fetch("data/NewYorkCityBikeRoutes.geojson")
         .then(function(response){
             return response.json();
@@ -297,78 +270,6 @@ function getData(){
     createForm();
     createLegend();
 };
-function processData(trips,stop_times){
-    var schedule=[]
-    var item={}
-    for (var i in trips){
-        var trip= trips[i].trip_id 
-        var route= trips[i].route_id;
-        item["trip"]=trip
-        item["route"]=route//match each trip id to its associated routeid
-        schedule.push(item)
-        item={}//clear what is stored
-    }
-    var groupedRoute = groupBy(schedule, 'trip');
-
-    
-    var schedule2=[]
-    for (var i in stop_times){
-        var time=[]
-        var item={}
-        time.push(stop_times[i].arrival_time)
-        time.push(stop_times[i].departure_time)
-        var tripid=stop_times[i].trip_id
-        item["time"]=time
-        item["trip"]=tripid//match time to associated route id
-        schedule2.push(item) 
-    }
-    var groupedTrip = groupBy(schedule2,'trip');
-    //groupedRoute and groupedTrip have same length and order
-    //add 
-    for (var i in groupedRoute){
-        var t=Object.values(groupedTrip[i])
-        groupedRoute[i].start_time = t[0].time //first time listed
-        groupedRoute[i].end_time = t[t.length-1].time //last time listed
-    }
-}
-/*
-function processData(data){
-    var schedule=[]
-    var item={}
-    for (var i in data.trips){
-        var trips= data.trips[i].trip_id 
-        var route= data.trips[i].route_id;
-        item["trip"]=trips
-        item["route"]=route//match each trip id to its associated routeid
-        schedule.push(item)
-        item={}//clear what is stored
-    }
-    var groupedRoute = groupBy(schedule, 'trip');
-
-    
-    var schedule2=[]
-    for (var i in data.stop_times){
-        var time=[]
-        var item={}
-        time.push(data.stop_times[i].arrival_time)
-        time.push(data.stop_times[i].departure_time)
-        var tripid=data.stop_times[i].trip_id
-        item["time"]=time
-        item["trip"]=tripid//match time to associated route id
-        schedule2.push(item) 
-    }
-    var groupedTrip = groupBy(schedule2,'trip');
-    
-    //groupedRoute and groupedTrip have same length and order
-    //add 
-    for (var i in groupedRoute){
-        var trip=Object.values(groupedTrip[i])
-        groupedRoute[i].start_time = trip[0].time //first time listed
-        groupedRoute[i].end_time = trip[trip.length-1].time //last time listed
-    }
-    //console.log(groupedRoute)
-}
-*/
 function onEachFeature(feature, layer) {
     // create html string with all properties
     var popupContent = "";
@@ -579,6 +480,7 @@ function updateTime(index){
     }
     var streetGroup=groupBy(trafficList,'SegmentID')
     streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
+        layer.unbindPopup();
         color=getColor(layer.feature.properties[id])
         layer.setStyle({color:color})
         var popupContent = "";//add pop-ups to displayed streets
@@ -684,7 +586,7 @@ function createControls(){
 
     controls.onAdd = function (map) {
 
-        var div = L.DomUtil.create('div', 'controls')
+        var div = L.DomUtil.create('div', 'controls')//create control panel
         div.innerHTML+='<div id="time"><h5><b>Time:</b>12:00PM</h5></div>'
         div.innerHTML+='<div id="sequence"></div><br>'
         div.innerHTML+='<div id="dropdown"></div><br>'
@@ -728,7 +630,7 @@ function createLegend(){
 function createForm(){
     var checkBox = document.querySelector('#form')
     var unchecked=['Subway','LIRR','Bus Route','Metro North','Bike Route','PATH']
-    var checked=['Traffic']
+    var checked=['Traffic']//only option that starts off checked and added to the map
     for (i in checked){
         checkBox.insertAdjacentHTML('beforeend', '<input type="checkbox" id="' + checked[i] +'" name="' + checked[i] +'" value="'+checked[i]+'"checked>')
         checkBox.insertAdjacentHTML('beforeend','<label for="' + checked[i] +'"><h6>' + checked[i] + '</h6></label><br>')
@@ -744,6 +646,7 @@ function createForm(){
 }
 function updateMap(){
     //layer control
+    //add or remove layers when check boxes are clicked
     if(this.value=='Bike Route'){
         if(this.checked){
             map.addLayer(bikeLayer)
@@ -823,7 +726,7 @@ function stylePath(feature) {
         fillColor: '#'+feature.properties.route_color
     };
 }
-//groupby function for processData
+//groupby function for data manipulation
 function groupBy(objectArray, property) {
     return objectArray.reduce((acc, obj) => {
        const key = obj[property];
@@ -836,25 +739,5 @@ function groupBy(objectArray, property) {
     }, {});
 }
 
-function FileHelper(path){
-    var request = new XMLHttpRequest();
-    request.open("GET", path, false);
-    request.send(null);
-    var returnValue = request.responseText;
-
-    return returnValue;
-    
-}
 document.addEventListener('DOMContentLoaded',createMap)
 
-/*
-geojson = L.geoJson(statesData, {
-    style: style,
-}).addTo(map);
-geojsonLayer.eachLayer()
-geojson.resetStyle
-geojson.setStyle
-//https://leafletjs.com/examples/choropleth/
-https://leafletjs.com/examples/custom-icons/
-https://gis.stackexchange.com/questions/75590/setstyle-function-for-geojson-features-leaflet
-*/
