@@ -4,14 +4,14 @@ traffic,
 scenario,
 timeIndex=12,
 streetLayer,
+bikeRoute,
+busRoute,
 congestionLayer,
 trafficType='Max',
-subwayLayer=L.layerGroup(),
-metroNorthLayer=L.layerGroup(),
-lirrLayer=L.layerGroup(),
-busLayer=L.layerGroup(),
-bikeLayer=L.layerGroup(),
-pathLayer=L.layerGroup(),
+subwayLayer=L.featureGroup(),
+metroNorthLayer=L.featureGroup(),
+lirrLayer=L.featureGroup(),
+pathLayer=L.featureGroup(),
 dataList; 
 
 //function to instantiate the Leaflet map
@@ -59,7 +59,6 @@ function createMap(){
             props.Peak+'<br>Off-Peak price(8pm-10pm): $'+props.OffPeak+'<br>Overnight price(10pm-6am): $'+props.Overnight+'<br>'+props.description 
             : 'Choose from dropdown menu');
     };
-
     info.addTo(map);
     map.doubleClickZoom.disable ()
     getData();
@@ -72,15 +71,16 @@ function getData(){
             return response.json();
         })
         .then(function(json){
+            console.log(json)
             //create a Leaflet GeoJSON layer and add it to the map           
             var subwayRoute=L.geoJson(json,{
                 onEachFeature: onEachFeature2,
-                style: stylePath,
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                style: stylePath
             });
-        subwayLayer.addLayer(subwayRoute)
+            
+            subwayLayer.addLayer(subwayRoute);
         })
-
+        
     fetch("data/Subway/Stops.json")
         .then(function(response){
             return response.json();
@@ -94,20 +94,18 @@ function getData(){
                     return L.marker(latlng,{clickable: true,icon: L.icon({
                         iconUrl: 'img/stop.svg',
                         iconSize: [10, 10], // size of the icon
-                    })})
-                },
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                        })
+                    })
+                }
             });
         subwayLayer.addLayer(subwayStop)
         })
-
 //-----Metro North------------
     fetch("data/MetroNorth/Routes.json")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
-            console.log(json)
             //create a Leaflet GeoJSON layer and add it to the map            
             var northRoute=L.geoJson(json,{
                 onEachFeature:onEachFeaturePath,
@@ -129,8 +127,8 @@ function getData(){
                         iconUrl: 'img/Path.svg',
                         iconSize: [12, 12], // size of the icon
                     })})
-                },
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                }
+               
             });
         metroNorthLayer.addLayer(northStop)    
         })
@@ -143,8 +141,7 @@ function getData(){
             //create a Leaflet GeoJSON layer and add it to the map            
             var pathRoute=L.geoJson(json,{
                 onEachFeature:onEachFeaturePath,
-                style:stylePath,
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                style:stylePath
             });
         pathLayer.addLayer(pathRoute)
         })
@@ -161,8 +158,7 @@ function getData(){
                         iconUrl: 'img/Path.svg',
                         iconSize: [9, 9], // size of the icon
                     })})
-                },
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                }
             });
         pathLayer.addLayer(pathStop)    
         })    
@@ -175,7 +171,6 @@ function getData(){
             var lirrRoute=L.geoJson(data,{
                 onEachFeature:onEachFeatureRoutes,
                 style:style,
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
             });
         lirrLayer.addLayer(lirrRoute)
         });
@@ -192,8 +187,7 @@ function getData(){
                         iconUrl: 'img/Path.svg',
                         iconSize: [12, 12], // size of the icon
                     })})
-                },
-                renderer: L.canvas({ tolerance: 10 })//how close to something you need to clock
+                }
             });
         lirrLayer.addLayer(lirrStop) 
         });
@@ -205,25 +199,26 @@ function getData(){
            return response.json();
         })
         .then(function(data){
-            var busRoute=L.geoJson(data,{
-                onEachFeature:onEachFeature2,
-                style:style,
-                renderer: L.canvas({ tolerance: 5 })//how close to something you need to clock
+            busRoute=L.geoJson(data,{
+                onEachFeature:onEachFeatureBus,
+                pane:'markerPane',
+                style:style
             });
-        busLayer.addLayer(busRoute)
+        //busLayer.addLayer(busRoute)
         });
+        
     fetch("data/NewYorkCityBikeRoutes.geojson")
         .then(function(response){
             return response.json();
         })
         .then(function(json){
             //create a Leaflet GeoJSON layer and add it to the map
-            var bikeRoute=L.geoJson(json,{
+            bikeRoute=L.geoJson(json,{
                 onEachFeature:onEachFeature4,
-                style:{color:'#1aa342'},
-                renderer: L.canvas({ tolerance: 5 })//how close to something you need to clock
+                pane:'markerPane',
+                style:{color:'#1aa342'}
             });
-        bikeLayer.addLayer(bikeRoute)
+        //bikeLayer.addLayer(bikeRoute)
         })
     fetch("data/Streets.json")
         .then(function(response){
@@ -234,7 +229,8 @@ function getData(){
             traffic=json.features
             //create a Leaflet GeoJSON layer and add it to the map          
             streetLayer =L.geoJson(json,{
-                onEachFeature:onEachFeature3
+                onEachFeature:onEachFeature3,
+                pane:'markerPane'
             }).addTo(map);
             //add default color for 12pm
             streetLayer.eachLayer(function (layer) {
@@ -243,8 +239,7 @@ function getData(){
         
                 layer.setStyle({color:color,weight:5})
               });
-            //use years from traffic data to make dropdown menu
-            //createDropdownTraffic(traffic);
+
         })
 
     fetch("data/CongestionZone.geojson")
@@ -258,7 +253,7 @@ function getData(){
                 style:{color:'#FED976'}//default color
             }).addTo(map);
             //add pop-up content
-            congestionLayer.bindPopup('Congestion Zone',{maxHeight:300}).openPopup;
+            congestionLayer.bindPopup('Congestion Zone',{maxHeight:300});
             //add congestion pricing scenarios
             congestion.A={Name:'A',Peak:9,OffPeak:7,Overnight:5,description:'Base plan with no exemptions'}
             congestion.B={Name:'B',Peak:10,OffPeak:8,Overnight:5,description:'Taxis and for hire vehicles charged max once per day'}
@@ -273,80 +268,6 @@ function getData(){
     createSequenceControls();
     createForm();
     createLegend();
-};
-function onEachFeature(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-
-    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
-    /*
-    if(feature.properties.stop_id[0]=='9'){//exception for 42nd shuttle
-        popupContent += "<p><b>Route:</b>S</p>";
-    }else if(feature.properties.stop_id[0]=='H'){//exception for Far Rockaway
-        popupContent += "<p><b>Route:</b>A</p>";
-    }else{
-        popupContent += "<p><b>Route:</b> " + feature.properties.stop_id[0] + "</p>";
-    }*/
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-};
-function onEachFeature2(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-    
-    popupContent += "<p><b>Route:</b> " + feature.properties.route_short_name + "</p>";
-    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
-    popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-};
-function onEachFeature3(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-    
-    popupContent += "<p><b>Road:</b> " + feature.properties.Roadway_Name+ "</p>";
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-    
-};
-function onEachFeature4(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-    
-    popupContent += "<p><b>Street:</b> " + feature.properties.street + "</p>";
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-    
-};
-function onEachFeatureRoutes(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-
-    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
-
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-};
-
-function onEachFeatureStops(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-    
-    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
-    if(!feature.properties.OBJECTID){//PATH stops have no links
-    popupContent += "<a href=" + "'" + feature.properties.stop_url + "' target='_blank'>More Information" + "</a>"
-    }
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-};
-function onEachFeaturePath(feature, layer) {
-    // create html string with all properties
-    var popupContent = "";
-
-    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
-
-    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-    layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
 };
 function createSequenceControls(){
     var sequence = document.querySelector('#sequence')
@@ -429,38 +350,7 @@ function createDropdownZone(congestion){
         info.update(congestion[key])
         return scenario//make globally available
     })
-}/*
-function createDropdownTraffic(traffic){
-    
-    //create list of unique year values
-    var yearList=[]
-    for(var i = 0; i < traffic.length; i++) {
-        var date=traffic[i].properties.Date
-    //year is always last 4 characters
-    if (!yearList.includes(date.substring(date.length-4,date.length)))
-    yearList.push(date.substring(date.length-4,date.length))
-    yearList.sort()
-    }
-    //add dropdown menu
-    document.querySelector('#dropdown').insertAdjacentHTML('beforeend','<select name="year" id="year"><option value="" selected="selected">Choose Year</option></select>')
-    for (i in yearList){
-        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">' + yearList[i] + '</option>')
-        }
-        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">All Years</option>')
-        
-        document.querySelector('#dropdown').insertAdjacentHTML('beforeend','<select name="year" id="year"><option value="" selected="selected">Choose Traffic Type</option></select>')
-        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Max</option>')
-        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Average</option>')
-        document.querySelector('#year').insertAdjacentHTML('beforeend','<option class="year-option">Minimum</option>')
-    //add event listener to all dropdown menu options
-    document.querySelector('#year').addEventListener("change",function(){
-        trafficType= this.value
-        console.log(trafficType)
-        updateTime(timeIndex)
-        return trafficType//globally set the year
-        
-    })
-}*/
+}
 function updateTime(index){
     var id=''
     if(index==12){
@@ -483,9 +373,9 @@ function updateTime(index){
     for(var i = 0; i < traffic.length; i++) {
     trafficList.push(traffic[i].properties)
     }
-    var streetGroup=groupBy(trafficList,'SegmentID')
+    
     streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
-        layer.unbindPopup();
+        //layer.unbindPopup();
         color=getColor(layer.feature.properties[id])
         layer.setStyle({color:color})
         var popupContent = "";//add pop-ups to displayed streets
@@ -494,87 +384,9 @@ function updateTime(index){
             popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[id]+ "</p>";
             popupContent += "<p><b>Time:</b> " + time+ "</p>";
         //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-        layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-        //trafficList.push(layer.feature.properties)
-        /*
-        var date=layer.feature.properties.Date
-        layer.removeFrom(map)
-        if ((year==date.substring(date.length-4,date.length))){//add only years matching chosen date to map
-            color=getColor(layer.feature.properties[id])
-            layer.setStyle({color:color})
-            var popupContent = "";//add pop-ups to displayed streets
-    
-            popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
-            popupContent += "<p><b>Traffic Count:</b> " + layer.feature.properties[id]+ "</p>";
-            popupContent += "<p><b>Time:</b> " + time+ "</p>";
-            //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-            layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-            layer.addTo(map) 
-        }*/
+        layer.bindPopup(popupContent,{maxHeight:300});
     });
-    /*
-    var trafficMax=[]
-    var trafficMin=[]
-    var trafficAverage=[]
-    var streetGroup=groupBy(trafficList,'SegmentID')
-    for(key in streetGroup){
-        //calculate max,min, and average values for each street
-        average=0
-        for(var i = 0; i < streetGroup[key].length; i++) {
-            max = streetGroup[key][0][id]
-            if(streetGroup[key][i][id]>max){
-            max=(streetGroup[key][i][id])
-            }
-            min=streetGroup[key][0][id]
-            if(streetGroup[key][i][id]<min){
-            min=(streetGroup[key][i][id])
-            }
-            average+=parseInt(streetGroup[key][i][id])
-        }
-        var popupContent = "";//add pop-ups to displayed streets
-        if(trafficType='Max'){
-            color=getColor(max);
-            popupContent += "<p><b>Traffic Count:</b> " + max+ "</p>";
-        }else if(trafficType='Min'){
-            color=getColor(min);
-            popupContent += "<p><b>Traffic Count:</b> " + min+ "</p>";
-        }else if(trafficType='Average'){
-            color=getColor(average);
-            popupContent += "<p><b>Traffic Count:</b> " + average+ "</p>";
-        }
-        if(layer.feature.properties.SegmentID==key){
-            layer.setStyle({color:color})
-
-            popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
-            popupContent += "<p><b>Time:</b> " + time+ "</p>";
-            //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-            layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-        }
-
-    }
     
-    streetLayer.eachLayer(function (layer) {//loop through each item in the street layer
-        layer.removeFrom(map)
-        var popupContent = "";//add pop-ups to displayed streets
-        if(trafficType='Max'){
-            color=getColor(max);
-            popupContent += "<p><b>Traffic Count:</b> " + max+ "</p>";
-        }else if(trafficType='Min'){
-            color=getColor(min);
-            popupContent += "<p><b>Traffic Count:</b> " + min+ "</p>";
-        }else if(trafficType='Average'){
-            color=getColor(average);
-            popupContent += "<p><b>Traffic Count:</b> " + average+ "</p>";
-        }
-        console.log(color)
-        layer.setStyle({color:color})
-
-        popupContent += "<p><b>Road:</b> " + layer.feature.properties.Roadway_Name+ "</p>";
-        popupContent += "<p><b>Time:</b> " + time+ "</p>";
-        //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
-        layer.bindPopup(popupContent,{maxHeight:300}).openPopup;
-        layer.addTo(map)
-    })*/
 }
 //from leaflet choropleth tutorial
 function getColor(d) {
@@ -587,10 +399,9 @@ function getColor(d) {
 }
 //add control panel
 function createControls(){
-    var controls = L.control({position: 'bottomleft'});
+    var controls = L.control({position: 'bottomleft'});//don't pass anything for first two arguments
 
     controls.onAdd = function (map) {
-
         var div = L.DomUtil.create('div', 'controls')//create control panel
         div.innerHTML+='<div id="time"><h5><b>Time:</b>12:00PM</h5></div>'
         div.innerHTML+='<div id="sequence"></div><br>'
@@ -654,9 +465,9 @@ function updateMap(){
     //add or remove layers when check boxes are clicked
     if(this.value=='Bike Route'){
         if(this.checked){
-            map.addLayer(bikeLayer)
+            map.addLayer(bikeRoute)
         }else if(!this.checked){
-            map.removeLayer(bikeLayer)
+            map.removeLayer(bikeRoute)
         }
     }
     if(this.value=='Subway'){
@@ -664,6 +475,7 @@ function updateMap(){
             map.addLayer(subwayLayer)
         }else if(!this.checked){
             map.removeLayer(subwayLayer)
+
         }
     }
     if(this.value=='LIRR'){
@@ -696,9 +508,9 @@ function updateMap(){
     }
     if(this.value=='Bus Route'){
         if(this.checked){
-            map.addLayer(busLayer)
+            map.addLayer(busRoute)
         }else if(!this.checked){
-            map.removeLayer(busLayer)
+            map.removeLayer(busRoute)
         }
     }
     if(this.value=='PATH'){
@@ -708,7 +520,6 @@ function updateMap(){
             map.removeLayer(pathLayer)
         }
     }
-    streetLayer.bringToFront();
 }
 
 //default style for layers
@@ -743,6 +554,81 @@ function groupBy(objectArray, property) {
        return acc;
     }, {});
 }
+//-------------onEachFeature Functions------
 
+function onEachFeature(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    layer.bindPopup(popupContent,{maxHeight:300});
+};
+function onEachFeature2(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Route:</b> " + feature.properties.route_short_name + "</p>";
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
+    popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300}).openPopup();
+};
+function onEachFeature3(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Road:</b> " + feature.properties.Roadway_Name+ "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+    
+};
+function onEachFeature4(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Street:</b> " + feature.properties.street + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+    
+};
+function onEachFeatureBus(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Route:</b> " + feature.properties.route_shor + "</p>";
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
+    popupContent += "<p><b>Description:</b> " + feature.properties.route_desc + "</p>";
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+};
+function onEachFeatureRoutes(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long + "</p>";
+
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+};
+
+function onEachFeatureStops(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+    
+    popupContent += "<p><b>Stop:</b> " + feature.properties.stop_name + "</p>";
+    if(!feature.properties.OBJECTID){//PATH stops have no links
+    popupContent += "<a href=" + "'" + feature.properties.stop_url + "' target='_blank'>More Information" + "</a>"
+    }
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+};
+function onEachFeaturePath(feature, layer) {
+    // create html string with all properties
+    var popupContent = "";
+
+    popupContent += "<p><b>Line:</b> " + feature.properties.route_long_name + "</p>";
+
+    //bind popup to map, set maxheight to make the popups scrollable instead of taking up the whole screen
+    layer.bindPopup(popupContent,{maxHeight:300});
+};
 document.addEventListener('DOMContentLoaded',createMap)
-
