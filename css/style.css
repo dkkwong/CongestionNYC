@@ -1,3 +1,8 @@
+
+a{
+    color:rgb(0, 0, 0);
+    font:8px;
+}
 /*---------Map Elements----------*/
 #map { height: 600px;    
     width: 100%;
